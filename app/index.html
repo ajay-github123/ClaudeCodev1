@@ -86,6 +86,7 @@ const screen = document.getElementById('screen');
 
 function render(html) { screen.innerHTML = html; screen.classList.remove('done'); }
 function money(n) { return '₹' + n.toLocaleString('en-IN'); }
+function esc(t) { return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 function genId(prefix) { return prefix + '-' + Math.random().toString(36).slice(2, 8).toUpperCase(); }
 
 function showFork() {
@@ -105,9 +106,9 @@ function showFork() {
 function eyeRow(eye, label) {
   return `<tr>
     <td>${label}</td>
-    <td><input id="${eye}-sph" inputmode="decimal" placeholder="-1.25"><div class="err" id="${eye}-sph-err"></div></td>
-    <td><input id="${eye}-cyl" inputmode="decimal" placeholder="0.00"><div class="err" id="${eye}-cyl-err"></div></td>
-    <td><input id="${eye}-axis" inputmode="numeric" placeholder="90"><div class="err" id="${eye}-axis-err"></div></td>
+    <td><input id="${eye}-sph" inputmode="decimal"><div class="err" id="${eye}-sph-err"></div></td>
+    <td><input id="${eye}-cyl" inputmode="decimal"><div class="err" id="${eye}-cyl-err"></div></td>
+    <td><input id="${eye}-axis" inputmode="numeric"><div class="err" id="${eye}-axis-err"></div></td>
   </tr>`;
 }
 
@@ -116,7 +117,7 @@ function showPowerForm() {
   render(`
     <div class="eyebrow">Step 2 of 3 · Your prescription</div>
     <h2>Enter your eye power</h2>
-    <p class="hint">Copy the numbers from your prescription. SPH and CYL are in steps of 0.25. Leave CYL and Axis empty if your prescription doesn't list them.</p>
+    <p class="hint">Copy the numbers from your prescription. SPH and CYL are in steps of 0.25. Enter 0 for SPH if an eye has no power. Leave CYL and Axis empty if your prescription doesn't list them.</p>
     <form id="rx-form" novalidate>
       <table class="rx">
         <thead><tr><th></th><th>SPH</th><th>CYL</th><th>Axis</th></tr></thead>
@@ -137,9 +138,13 @@ function setErr(id, msg) {
   document.getElementById(id).setAttribute('aria-invalid', msg ? 'true' : 'false');
 }
 
+// Strict parse: parseFloat('-1.25abc') returns -1.25, so it would let junk through.
+const NUM = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
 function checkPower(value, min, max) {
-  const n = parseFloat(value);
-  if (isNaN(n)) return { error: 'Enter a number' };
+  value = value.trim();
+  if (!value) return { error: 'Required' };
+  if (!NUM.test(value)) return { error: 'Enter a number like -1.25' };
+  const n = Number(value);
   if (n < min || n > max) return { error: `Must be between ${min} and ${max}` };
   if (Math.round(n * 4) !== n * 4) return { error: 'Use steps of 0.25' };
   return { value: n };
@@ -153,17 +158,22 @@ function submitPower() {
     setErr(eye + '-sph', sph.error);
     if (sph.error) ok = false;
 
-    const cylRaw = document.getElementById(eye + '-cyl').value;
+    const cylRaw = document.getElementById(eye + '-cyl').value.trim();
     let cyl = { value: 0 };
     if (cylRaw) { cyl = checkPower(cylRaw, -6, 6); }
     setErr(eye + '-cyl', cyl.error);
     if (cyl.error) ok = false;
 
-    const axisRaw = document.getElementById(eye + '-axis').value;
+    // Axis and CYL go together: a cylinder without an axis can't be made,
+    // and an axis without a cylinder means a field was mistyped.
+    const axisRaw = document.getElementById(eye + '-axis').value.trim();
+    const hasCyl = !cyl.error && cyl.value !== 0;
     let axis = { value: null };
-    if (axisRaw) {
-      const a = parseInt(axisRaw, 10);
-      axis = (a >= 1 && a <= 180) ? { value: a } : { error: 'Axis is 1 to 180' };
+    if (hasCyl && !axisRaw) axis = { error: 'Required when CYL is set' };
+    else if (!hasCyl && axisRaw && !cyl.error) axis = { error: 'Only used when CYL is set' };
+    else if (axisRaw) {
+      const a = Number(axisRaw);
+      axis = (/^\d{1,3}$/.test(axisRaw) && a >= 1 && a <= 180) ? { value: a } : { error: 'Whole number, 1 to 180' };
     }
     setErr(eye + '-axis', axis.error);
     if (axis.error) ok = false;
@@ -203,7 +213,8 @@ function showReview() {
 
 /* ---------- Path B: I don't know my power ---------- */
 const SLOTS = ['10:00–12:00', '12:00–14:00', '14:00–16:00', '16:00–18:00', '18:00–20:00'];
-function isoDate(d) { return d.toISOString().slice(0, 10); }
+// Local date, not toISOString(): in IST before 05:30 the UTC date is still yesterday.
+function isoDate(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 
 function showBookingForm() {
   state.path = 'dontknow';
@@ -246,17 +257,20 @@ function submitBooking() {
   const pinErr = /^[1-9][0-9]{5}$/.test(pin) ? '' : 'Enter a 6-digit pincode';
   setErr('pin', pinErr); if (pinErr) ok = false;
 
+  // The input's min/max don't block submission under novalidate, so check the range here.
   const date = v('date');
-  const dateErr = date ? '' : 'Pick a date';
+  const f = document.getElementById('date');
+  const dateErr = !date ? 'Pick a date' : (date < f.min || date > f.max) ? 'Pick a date in the next 14 days' : '';
   setErr('date', dateErr); if (dateErr) ok = false;
 
   const slotErr = v('slot') ? '' : 'Pick a time slot';
   setErr('slot', slotErr); if (slotErr) ok = false;
 
-  const nameErr = v('name') ? '' : 'Enter your name';
+  const name = v('name').trim();
+  const nameErr = name ? '' : 'Enter your name';
   setErr('name', nameErr); if (nameErr) ok = false;
 
-  const phone = v('phone').replace(/\s/g, '');
+  const phone = v('phone').replace(/[\s-]/g, '').replace(/^(\+91|0)/, '');
   const phoneErr = /^[6-9][0-9]{9}$/.test(phone) ? '' : 'Enter a 10-digit mobile number';
   setErr('phone', phoneErr); if (phoneErr) ok = false;
 
@@ -269,7 +283,7 @@ function submitBooking() {
     lines: [
       ['Where', mode === 'home' ? 'At home, ' + pin : 'Nearest store to ' + pin],
       ['When', date + ', ' + v('slot')],
-      ['Name', v('name')],
+      ['Name', name],
       ['Mobile', phone],
       ['Order', 'Held, ' + money(3500) + ' payable after the test']
     ],
@@ -283,7 +297,7 @@ function showDone({ title, id, lines, note }) {
     <div class="eyebrow">Confirmed</div>
     <h2>${title}</h2>
     <div class="id" id="confirm-id">${id}</div>
-    <div class="summary">${lines.map(([k, v]) => `<div><span>${k}</span><span>${v}</span></div>`).join('')}</div>
+    <div class="summary">${lines.map(([k, v]) => `<div><span>${k}</span><span>${esc(v)}</span></div>`).join('')}</div>
     <p class="hint">${note}</p>
     <div class="actions"><span></span><button class="ghost" id="restart">Start again</button></div>`);
   screen.classList.add('done');
