@@ -66,15 +66,45 @@ button:focus-visible, input:focus-visible, select:focus-visible, .choice:focus-v
 .done { border-color: var(--ok); }
 .done .id { font: 600 1.3rem var(--mono); color: var(--ok); }
 .banner { color: var(--error); font-size: .9rem; }
+.hero { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.hero svg { width: 150px; max-width: 40%; height: auto; color: var(--fg); flex: none; }
+.cart-item { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.thumb { width: 64px; height: 40px; flex: none; border-radius: 8px; background: var(--soft); color: var(--fg); display: grid; place-items: center; }
+.thumb svg { width: 52px; height: auto; }
+.choice { grid-template-columns: 48px 1fr; align-items: center; column-gap: 14px; }
+.choice .icon { grid-row: span 2; width: 48px; height: 48px; color: var(--accent); }
+.demo { background: var(--soft); border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 12px; font-size: .88rem; }
+.demo code { font-family: var(--mono); }
+.methods { display: grid; gap: 8px; }
+.methods label { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-weight: 500; }
+.methods label:has(input:checked) { border-color: var(--accent); background: var(--soft); }
+.methods input { width: auto; }
+.methods small { color: var(--muted); font-weight: 400; margin-left: auto; text-align: right; }
+.pay-fields { display: grid; gap: 12px; }
+button.primary[disabled] { opacity: .6; cursor: progress; }
 </style>
 
 <div class="wrap">
-  <div>
-    <div class="eyebrow">Prototype · checkout</div>
-    <h1>Add lenses to your frame</h1>
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Prototype · eyeglasses checkout</div>
+      <h1>Add lenses to your frame</h1>
+    </div>
+    <svg viewBox="0 0 160 70" role="img" aria-label="Round eyeglasses">
+      <!-- temples, rims, bridge, nose pads, lens tint and glare -->
+      <path d="M14 30 L3 24 M146 30 L157 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <circle cx="44" cy="38" r="27" fill="var(--accent)" fill-opacity=".14" stroke="currentColor" stroke-width="4"/>
+      <circle cx="116" cy="38" r="27" fill="var(--accent)" fill-opacity=".14" stroke="currentColor" stroke-width="4"/>
+      <path d="M71 34 Q80 24 89 34" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M68 46 l4 6 M92 46 l-4 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <path d="M30 26 A20 20 0 0 1 46 18 M102 26 A20 20 0 0 1 118 18" stroke="var(--surface)" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".9"/>
+    </svg>
   </div>
   <div class="cart" aria-label="Cart">
-    <span>Round titanium frame + blue-cut single-vision lenses</span>
+    <span class="cart-item">
+      <span class="thumb"><svg viewBox="0 0 120 48" aria-hidden="true"><path d="M12 20 L3 15 M108 20 L117 15" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="33" cy="26" r="19" fill="var(--accent)" fill-opacity=".18" stroke="currentColor" stroke-width="4"/><circle cx="87" cy="26" r="19" fill="var(--accent)" fill-opacity=".18" stroke="currentColor" stroke-width="4"/><path d="M52 23 Q60 15 68 23" stroke="currentColor" stroke-width="3.5" fill="none"/></svg></span>
+      <span>Round titanium frame, gunmetal<br><span class="hint">+ blue-cut single-vision lenses</span></span>
+    </span>
     <b>₹3,500</b>
   </div>
   <main id="screen" class="card" aria-live="polite"></main>
@@ -89,14 +119,23 @@ function money(n) { return '₹' + n.toLocaleString('en-IN'); }
 function esc(t) { return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 function genId(prefix) { return prefix + '-' + Math.random().toString(36).slice(2, 8).toUpperCase(); }
 
+const ICON_RX = `<svg class="icon" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+  <rect x="9" y="5" width="30" height="38" rx="3"/><path d="M15 14h18M15 21h12"/>
+  <circle cx="19" cy="33" r="5"/><circle cx="31" cy="33" r="5"/><path d="M24 32h2"/></svg>`;
+const ICON_CHART = `<svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
+  <rect x="8" y="3" width="32" height="42" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+  <text x="24" y="20" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="14" fill="currentColor">E</text>
+  <text x="24" y="31" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="8" fill="currentColor">F P</text>
+  <text x="24" y="39" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="5" fill="currentColor">T O Z</text></svg>`;
+
 function showFork() {
   state.path = null;
   render(`
-    <div class="eyebrow">Step 1 of 3</div>
+    <div class="eyebrow">Step 1 · Your power</div>
     <h2>Do you know your eye power?</h2>
     <div class="choices">
-      <button class="choice" id="know"><strong>Yes, I know my power</strong><span>Enter it from your prescription</span></button>
-      <button class="choice" id="dontknow"><strong>No, I don't know it</strong><span>Book a free eye test, at home or in a store. We make your lenses after the test.</span></button>
+      <button class="choice" id="know">${ICON_RX}<strong>Yes, I know my power</strong><span>Enter it from your prescription</span></button>
+      <button class="choice" id="dontknow">${ICON_CHART}<strong>No, I don't know it</strong><span>Book a free eye test, at home or in a store. We make your lenses after the test.</span></button>
     </div>`);
   document.getElementById('know').onclick = showPowerForm;
   document.getElementById('dontknow').onclick = showBookingForm;
@@ -115,7 +154,7 @@ function eyeRow(eye, label) {
 function showPowerForm() {
   state.path = 'know';
   render(`
-    <div class="eyebrow">Step 2 of 3 · Your prescription</div>
+    <div class="eyebrow">Step 2 · Your prescription</div>
     <h2>Enter your eye power</h2>
     <p class="hint">Copy the numbers from your prescription. SPH and CYL are in steps of 0.25. Enter 0 for SPH if an eye has no power. Leave CYL and Axis empty if your prescription doesn't list them.</p>
     <form id="rx-form" novalidate>
@@ -191,7 +230,7 @@ function rxLine(e) { return `SPH ${fmt(e.sph)}  CYL ${fmt(e.cyl)}${e.axis ? '  �
 
 function showReview() {
   render(`
-    <div class="eyebrow">Step 3 of 3 · Review</div>
+    <div class="eyebrow">Step 3 · Review</div>
     <h2>Check your order</h2>
     <div class="summary">
       <div><span>Right (OD)</span><span>${rxLine(state.rx.r)}</span></div>
@@ -200,14 +239,17 @@ function showReview() {
     </div>
     <div class="actions">
       <button class="ghost" id="edit">Edit power</button>
-      <button class="primary" id="place">Place order</button>
+      <button class="primary" id="place">Continue to payment</button>
     </div>`);
   document.getElementById('edit').onclick = showPowerForm;
-  document.getElementById('place').onclick = () => showDone({
-    title: 'Order placed',
-    id: genId('ORD'),
-    lines: [['Right (OD)', rxLine(state.rx.r)], ['Left (OS)', rxLine(state.rx.l)], ['Paid', money(3500)]],
-    note: 'Your lenses go into production today. Delivery in 5 to 7 days.'
+  document.getElementById('place').onclick = () => showPayment({
+    step: 4, back: showReview,
+    done: pay => showDone({
+      title: 'Order placed',
+      id: genId('ORD'),
+      lines: [['Right (OD)', rxLine(state.rx.r)], ['Left (OS)', rxLine(state.rx.l)], ...pay],
+      note: 'Your lenses go into production today. Delivery in 5 to 7 days.'
+    })
   });
 }
 
@@ -221,7 +263,7 @@ function showBookingForm() {
   const today = new Date();
   const max = new Date(); max.setDate(today.getDate() + 14);
   render(`
-    <div class="eyebrow">Step 2 of 3 · Free eye test</div>
+    <div class="eyebrow">Step 2 · Free eye test</div>
     <h2>Book your eye test</h2>
     <p class="hint">An optometrist checks your power. Your order is held and lenses are made after the test.</p>
     <form id="bk-form" novalidate class="card" style="border:0;padding:0">
@@ -243,7 +285,7 @@ function showBookingForm() {
       <div class="banner" id="bk-banner"></div>
       <div class="actions">
         <button type="button" class="ghost" id="back">Back</button>
-        <button type="submit" class="primary">Book test and place order</button>
+        <button type="submit" class="primary">Continue to payment</button>
       </div>
     </form>`);
   document.getElementById('back').onclick = showFork;
@@ -277,18 +319,127 @@ function submitBooking() {
   document.getElementById('bk-banner').textContent = ok ? '' : 'Fix the highlighted fields to continue.';
   if (!ok) return;
   const mode = document.querySelector('input[name=mode]:checked').value;
-  showDone({
-    title: 'Eye test booked',
-    id: genId('BKG'),
-    lines: [
-      ['Where', mode === 'home' ? 'At home, ' + pin : 'Nearest store to ' + pin],
-      ['When', date + ', ' + v('slot')],
-      ['Name', name],
-      ['Mobile', phone],
-      ['Order', 'Held, ' + money(3500) + ' payable after the test']
-    ],
-    note: 'We will text you a reminder the day before. Lenses are made from the power measured at your test.'
+  const booking = [
+    ['Where', mode === 'home' ? 'At home, ' + pin : 'Nearest store to ' + pin],
+    ['When', date + ', ' + v('slot')],
+    ['Name', name],
+    ['Mobile', phone]
+  ];
+  showPayment({
+    step: 3, back: showBookingForm, payLater: true,
+    done: pay => showDone({
+      title: 'Eye test booked, order placed',
+      id: genId('BKG'),
+      lines: [...booking, ...pay],
+      note: 'We will text you a reminder the day before. Lenses are made from the power measured at your test.'
+    })
   });
+}
+
+/* ---------- Payment (demo: nothing is charged or sent anywhere) ---------- */
+// Luhn checksum catches most mistyped card numbers.
+function luhn(num) {
+  let sum = 0;
+  for (let i = 0; i < num.length; i++) {
+    let d = Number(num[num.length - 1 - i]);
+    if (i % 2) { d *= 2; if (d > 9) d -= 9; }
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
+function cardBrand(num) {
+  if (/^4/.test(num)) return 'Visa';
+  if (/^(5[1-5]|2[2-7])/.test(num)) return 'Mastercard';
+  if (/^(60|65|81|82|508)/.test(num)) return 'RuPay';
+  if (/^3[47]/.test(num)) return 'Amex';
+  return 'Card';
+}
+
+function showPayment({ step, back, done, payLater }) {
+  render(`
+    <div class="eyebrow">Step ${step} · Payment</div>
+    <h2>Pay ${money(3500)}</h2>
+    <div class="demo"><strong>Demo checkout.</strong> No money is charged and nothing leaves this page. Don't enter a real card. For a test card use <code>4111 1111 1111 1111</code>, any future expiry, any 3-digit CVV.</div>
+    <form id="pay-form" novalidate class="card" style="border:0;padding:0">
+      <div class="methods" role="radiogroup" aria-label="Payment method">
+        <label><input type="radio" name="method" value="upi" checked> UPI <small>GPay, PhonePe, Paytm</small></label>
+        <label><input type="radio" name="method" value="card"> Credit or debit card <small>Visa, Mastercard, RuPay</small></label>
+        <label><input type="radio" name="method" value="cod"> Cash on delivery <small>Pay when it arrives</small></label>
+        ${payLater ? '<label><input type="radio" name="method" value="later"> Pay after your eye test <small>Order held until then</small></label>' : ''}
+      </div>
+      <div class="pay-fields" id="f-upi">
+        <div class="field"><label for="vpa">UPI ID</label><input id="vpa" autocomplete="off" placeholder="yourname@okbank"><div class="err" id="vpa-err"></div></div>
+      </div>
+      <div class="pay-fields" id="f-card" hidden>
+        <div class="field"><label for="cc">Card number</label><input id="cc" inputmode="numeric" autocomplete="off"><div class="err" id="cc-err"></div></div>
+        <div class="row">
+          <div class="field"><label for="exp">Expiry (MM/YY)</label><input id="exp" inputmode="numeric" autocomplete="off"><div class="err" id="exp-err"></div></div>
+          <div class="field"><label for="cvv">CVV</label><input id="cvv" inputmode="numeric" autocomplete="off" type="password"><div class="err" id="cvv-err"></div></div>
+        </div>
+        <div class="field"><label for="ccname">Name on card</label><input id="ccname" autocomplete="off"><div class="err" id="ccname-err"></div></div>
+      </div>
+      <div class="banner" id="pay-banner"></div>
+      <div class="actions">
+        <button type="button" class="ghost" id="back">Back</button>
+        <button type="submit" class="primary" id="pay-btn">Pay ${money(3500)}</button>
+      </div>
+    </form>`);
+  const method = () => document.querySelector('input[name=method]:checked').value;
+  const sync = () => {
+    const m = method();
+    document.getElementById('f-upi').hidden = m !== 'upi';
+    document.getElementById('f-card').hidden = m !== 'card';
+    document.getElementById('pay-btn').textContent =
+      m === 'cod' || m === 'later' ? 'Place order' : 'Pay ' + money(3500);
+  };
+  document.querySelectorAll('input[name=method]').forEach(r => r.onchange = sync);
+  document.getElementById('back').onclick = back;
+  document.getElementById('pay-form').onsubmit = (e) => {
+    e.preventDefault();
+    const pay = checkPayment(method());
+    document.getElementById('pay-banner').textContent = pay ? '' : 'Fix the highlighted fields to continue.';
+    if (!pay) return;
+    // Stand-in for the payment gateway round trip.
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = true; btn.textContent = 'Processing…';
+    setTimeout(() => done(pay), 900);
+  };
+}
+
+// Returns summary lines for the confirmation, or null if a field is invalid.
+function checkPayment(m) {
+  const v = id => document.getElementById(id).value.trim();
+  if (m === 'cod') return [['Payment', 'Cash on delivery, ' + money(3500)]];
+  if (m === 'later') return [['Payment', money(3500) + ' due after the eye test']];
+  if (m === 'upi') {
+    const vpa = v('vpa');
+    const err = /^[a-z0-9._-]{2,256}@[a-z]{2,64}$/i.test(vpa) ? '' : 'Enter a UPI ID like name@okbank';
+    setErr('vpa', err);
+    return err ? null : [['Paid', money(3500) + ' via UPI (' + vpa + ')']];
+  }
+  let ok = true;
+  const num = v('cc').replace(/[\s-]/g, '');
+  const ccErr = !/^\d{13,19}$/.test(num) ? 'Enter the 13 to 19 digits on your card'
+    : !luhn(num) ? 'This card number isn\'t valid. Check for a typo' : '';
+  setErr('cc', ccErr); if (ccErr) ok = false;
+
+  const exp = v('exp').match(/^(\d{2})\s*\/\s*(\d{2})$/);
+  let expErr = exp ? '' : 'Use MM/YY, like 08/28';
+  if (exp) {
+    const mm = Number(exp[1]), yy = 2000 + Number(exp[2]);
+    const now = new Date();
+    if (mm < 1 || mm > 12) expErr = 'Month must be 01 to 12';
+    else if (yy < now.getFullYear() || (yy === now.getFullYear() && mm < now.getMonth() + 1)) expErr = 'This card has expired';
+  }
+  setErr('exp', expErr); if (expErr) ok = false;
+
+  const cvvErr = /^\d{3,4}$/.test(v('cvv')) ? '' : 'Enter the 3 or 4 digits on the back';
+  setErr('cvv', cvvErr); if (cvvErr) ok = false;
+
+  const nameErr = v('ccname') ? '' : 'Enter the name on the card';
+  setErr('ccname', nameErr); if (nameErr) ok = false;
+
+  return ok ? [['Paid', money(3500) + ' by ' + cardBrand(num) + ' •••• ' + num.slice(-4)]] : null;
 }
 
 /* ---------- Confirmation ---------- */
