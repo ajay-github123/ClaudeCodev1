@@ -1,0 +1,308 @@
+<title>Eyewear Checkout Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow checkout column; a cart strip on top, one step card below it. */
+:root {
+  --bg: #f3f6f7; --surface: #ffffff; --fg: #142028; --muted: #5b6b74;
+  --line: #d6dee2; --accent: #0b6e6e; --accent-ink: #ffffff;
+  --error: #b42318; --ok: #1a7f4b; --soft: #e5efef;
+  --display: "Fraunces", Georgia, serif;
+  --body: "Public Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1619; --surface: #172126; --fg: #e4ecef; --muted: #93a4ac;
+  --line: #2a3a41; --accent: #4fc1bd; --accent-ink: #062120;
+  --error: #f97066; --ok: #4ac98a; --soft: #1d2d31; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1619; --surface: #172126; --fg: #e4ecef; --muted: #93a4ac;
+  --line: #2a3a41; --accent: #4fc1bd; --accent-ink: #062120;
+  --error: #f97066; --ok: #4ac98a; --soft: #1d2d31; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+.wrap { max-width: 560px; margin: 0 auto; padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 16px; }
+h1 { font: 600 1.6rem/1.2 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 1.25rem/1.25 var(--display); margin: 0; text-wrap: balance; }
+.eyebrow { font: 500 .72rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.cart { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.cart b { font-variant-numeric: tabular-nums; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px; display: grid; gap: 16px; }
+.choices { display: grid; gap: 12px; }
+.choice { text-align: left; font: inherit; color: inherit; background: var(--soft);
+  border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; cursor: pointer; display: grid; gap: 2px; }
+.choice:hover { border-color: var(--accent); }
+.choice strong { font-size: 1rem; }
+.choice span { color: var(--muted); font-size: .9rem; }
+table.rx { width: 100%; border-collapse: collapse; }
+.rx th { font: 500 .72rem var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 0 6px 6px 0; }
+.rx td { padding: 0 6px 10px 0; vertical-align: top; }
+.rx td:first-child { font-weight: 600; padding-top: 8px; white-space: nowrap; }
+.field { display: grid; gap: 4px; }
+label { font-weight: 500; font-size: .9rem; }
+input, select { font: 15px var(--mono); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box; min-width: 0; }
+input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--error); }
+.err { color: var(--error); font-size: .82rem; min-height: 0; }
+.hint { color: var(--muted); font-size: .85rem; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.row > * { flex: 1 1 140px; min-width: 0; }
+.seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg label { display: flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 500; }
+.seg input { width: auto; }
+.actions { display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+button.primary, button.ghost { font: 600 15px var(--body); border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); }
+button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+button:focus-visible, input:focus-visible, select:focus-visible, .choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.summary { display: grid; gap: 6px; font-family: var(--mono); font-size: .9rem; }
+.summary div { display: flex; justify-content: space-between; gap: 12px; }
+.done { border-color: var(--ok); }
+.done .id { font: 600 1.3rem var(--mono); color: var(--ok); }
+.banner { color: var(--error); font-size: .9rem; }
+</style>
+
+<div class="wrap">
+  <div>
+    <div class="eyebrow">Prototype · checkout</div>
+    <h1>Add lenses to your frame</h1>
+  </div>
+  <div class="cart" aria-label="Cart">
+    <span>Round titanium frame + blue-cut single-vision lenses</span>
+    <b>₹3,500</b>
+  </div>
+  <main id="screen" class="card" aria-live="polite"></main>
+</div>
+
+<script>
+const state = { path: null, rx: null, booking: null };
+const screen = document.getElementById('screen');
+
+function render(html) { screen.innerHTML = html; screen.classList.remove('done'); }
+function money(n) { return '₹' + n.toLocaleString('en-IN'); }
+function esc(t) { return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+function genId(prefix) { return prefix + '-' + Math.random().toString(36).slice(2, 8).toUpperCase(); }
+
+function showFork() {
+  state.path = null;
+  render(`
+    <div class="eyebrow">Step 1 of 3</div>
+    <h2>Do you know your eye power?</h2>
+    <div class="choices">
+      <button class="choice" id="know"><strong>Yes, I know my power</strong><span>Enter it from your prescription</span></button>
+      <button class="choice" id="dontknow"><strong>No, I don't know it</strong><span>Book a free eye test, at home or in a store. We make your lenses after the test.</span></button>
+    </div>`);
+  document.getElementById('know').onclick = showPowerForm;
+  document.getElementById('dontknow').onclick = showBookingForm;
+}
+
+/* ---------- Path A: I know my power ---------- */
+function eyeRow(eye, label) {
+  return `<tr>
+    <td>${label}</td>
+    <td><input id="${eye}-sph" inputmode="decimal"><div class="err" id="${eye}-sph-err"></div></td>
+    <td><input id="${eye}-cyl" inputmode="decimal"><div class="err" id="${eye}-cyl-err"></div></td>
+    <td><input id="${eye}-axis" inputmode="numeric"><div class="err" id="${eye}-axis-err"></div></td>
+  </tr>`;
+}
+
+function showPowerForm() {
+  state.path = 'know';
+  render(`
+    <div class="eyebrow">Step 2 of 3 · Your prescription</div>
+    <h2>Enter your eye power</h2>
+    <p class="hint">Copy the numbers from your prescription. SPH and CYL are in steps of 0.25. Enter 0 for SPH if an eye has no power. Leave CYL and Axis empty if your prescription doesn't list them.</p>
+    <form id="rx-form" novalidate>
+      <table class="rx">
+        <thead><tr><th></th><th>SPH</th><th>CYL</th><th>Axis</th></tr></thead>
+        <tbody>${eyeRow('r', 'Right (OD)')}${eyeRow('l', 'Left (OS)')}</tbody>
+      </table>
+      <div class="banner" id="rx-banner"></div>
+      <div class="actions">
+        <button type="button" class="ghost" id="back">Back</button>
+        <button type="submit" class="primary">Review order</button>
+      </div>
+    </form>`);
+  document.getElementById('back').onclick = showFork;
+  document.getElementById('rx-form').onsubmit = (e) => { e.preventDefault(); submitPower(); };
+}
+
+function setErr(id, msg) {
+  document.getElementById(id + '-err').textContent = msg || '';
+  document.getElementById(id).setAttribute('aria-invalid', msg ? 'true' : 'false');
+}
+
+// Strict parse: parseFloat('-1.25abc') returns -1.25, so it would let junk through.
+const NUM = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
+function checkPower(value, min, max) {
+  value = value.trim();
+  if (!value) return { error: 'Required' };
+  if (!NUM.test(value)) return { error: 'Enter a number like -1.25' };
+  const n = Number(value);
+  if (n < min || n > max) return { error: `Must be between ${min} and ${max}` };
+  if (Math.round(n * 4) !== n * 4) return { error: 'Use steps of 0.25' };
+  return { value: n };
+}
+
+function submitPower() {
+  const rx = {};
+  let ok = true;
+  for (const eye of ['r', 'l']) {
+    const sph = checkPower(document.getElementById(eye + '-sph').value, -20, 20);
+    setErr(eye + '-sph', sph.error);
+    if (sph.error) ok = false;
+
+    const cylRaw = document.getElementById(eye + '-cyl').value.trim();
+    let cyl = { value: 0 };
+    if (cylRaw) { cyl = checkPower(cylRaw, -6, 6); }
+    setErr(eye + '-cyl', cyl.error);
+    if (cyl.error) ok = false;
+
+    // Axis and CYL go together: a cylinder without an axis can't be made,
+    // and an axis without a cylinder means a field was mistyped.
+    const axisRaw = document.getElementById(eye + '-axis').value.trim();
+    const hasCyl = !cyl.error && cyl.value !== 0;
+    let axis = { value: null };
+    if (hasCyl && !axisRaw) axis = { error: 'Required when CYL is set' };
+    else if (!hasCyl && axisRaw && !cyl.error) axis = { error: 'Only used when CYL is set' };
+    else if (axisRaw) {
+      const a = Number(axisRaw);
+      axis = (/^\d{1,3}$/.test(axisRaw) && a >= 1 && a <= 180) ? { value: a } : { error: 'Whole number, 1 to 180' };
+    }
+    setErr(eye + '-axis', axis.error);
+    if (axis.error) ok = false;
+
+    rx[eye] = { sph: sph.value, cyl: cyl.value, axis: axis.value };
+  }
+  document.getElementById('rx-banner').textContent = ok ? '' : 'Fix the highlighted fields to continue.';
+  if (!ok) return;
+  state.rx = rx;
+  showReview();
+}
+
+function fmt(n) { return (n > 0 ? '+' : '') + n.toFixed(2); }
+function rxLine(e) { return `SPH ${fmt(e.sph)}  CYL ${fmt(e.cyl)}${e.axis ? '  × ' + e.axis : ''}`; }
+
+function showReview() {
+  render(`
+    <div class="eyebrow">Step 3 of 3 · Review</div>
+    <h2>Check your order</h2>
+    <div class="summary">
+      <div><span>Right (OD)</span><span>${rxLine(state.rx.r)}</span></div>
+      <div><span>Left (OS)</span><span>${rxLine(state.rx.l)}</span></div>
+      <div><span>Total</span><span>${money(3500)}</span></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="edit">Edit power</button>
+      <button class="primary" id="place">Place order</button>
+    </div>`);
+  document.getElementById('edit').onclick = showPowerForm;
+  document.getElementById('place').onclick = () => showDone({
+    title: 'Order placed',
+    id: genId('ORD'),
+    lines: [['Right (OD)', rxLine(state.rx.r)], ['Left (OS)', rxLine(state.rx.l)], ['Paid', money(3500)]],
+    note: 'Your lenses go into production today. Delivery in 5 to 7 days.'
+  });
+}
+
+/* ---------- Path B: I don't know my power ---------- */
+const SLOTS = ['10:00–12:00', '12:00–14:00', '14:00–16:00', '16:00–18:00', '18:00–20:00'];
+// Local date, not toISOString(): in IST before 05:30 the UTC date is still yesterday.
+function isoDate(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+
+function showBookingForm() {
+  state.path = 'dontknow';
+  const today = new Date();
+  const max = new Date(); max.setDate(today.getDate() + 14);
+  render(`
+    <div class="eyebrow">Step 2 of 3 · Free eye test</div>
+    <h2>Book your eye test</h2>
+    <p class="hint">An optometrist checks your power. Your order is held and lenses are made after the test.</p>
+    <form id="bk-form" novalidate class="card" style="border:0;padding:0">
+      <div class="seg" role="radiogroup" aria-label="Where">
+        <label><input type="radio" name="mode" value="home" checked> At home</label>
+        <label><input type="radio" name="mode" value="store"> In a store</label>
+      </div>
+      <div class="row">
+        <div class="field"><label for="pin">Pincode</label><input id="pin" inputmode="numeric" placeholder="560034"><div class="err" id="pin-err"></div></div>
+        <div class="field"><label for="date">Date</label><input id="date" type="date" min="${isoDate(today)}" max="${isoDate(max)}"><div class="err" id="date-err"></div></div>
+      </div>
+      <div class="field"><label for="slot">Time slot</label>
+        <select id="slot"><option value="">Choose a slot</option>${SLOTS.map(s => `<option>${s}</option>`).join('')}</select>
+        <div class="err" id="slot-err"></div></div>
+      <div class="row">
+        <div class="field"><label for="name">Name</label><input id="name" autocomplete="name" placeholder="Priya Sharma"><div class="err" id="name-err"></div></div>
+        <div class="field"><label for="phone">Mobile</label><input id="phone" inputmode="tel" placeholder="98765 43210"><div class="err" id="phone-err"></div></div>
+      </div>
+      <div class="banner" id="bk-banner"></div>
+      <div class="actions">
+        <button type="button" class="ghost" id="back">Back</button>
+        <button type="submit" class="primary">Book test and place order</button>
+      </div>
+    </form>`);
+  document.getElementById('back').onclick = showFork;
+  document.getElementById('bk-form').onsubmit = (e) => { e.preventDefault(); submitBooking(); };
+}
+
+function submitBooking() {
+  const v = id => document.getElementById(id).value;
+  let ok = true;
+  const pin = v('pin');
+  const pinErr = /^[1-9][0-9]{5}$/.test(pin) ? '' : 'Enter a 6-digit pincode';
+  setErr('pin', pinErr); if (pinErr) ok = false;
+
+  // The input's min/max don't block submission under novalidate, so check the range here.
+  const date = v('date');
+  const f = document.getElementById('date');
+  const dateErr = !date ? 'Pick a date' : (date < f.min || date > f.max) ? 'Pick a date in the next 14 days' : '';
+  setErr('date', dateErr); if (dateErr) ok = false;
+
+  const slotErr = v('slot') ? '' : 'Pick a time slot';
+  setErr('slot', slotErr); if (slotErr) ok = false;
+
+  const name = v('name').trim();
+  const nameErr = name ? '' : 'Enter your name';
+  setErr('name', nameErr); if (nameErr) ok = false;
+
+  const phone = v('phone').replace(/[\s-]/g, '').replace(/^(\+91|0)/, '');
+  const phoneErr = /^[6-9][0-9]{9}$/.test(phone) ? '' : 'Enter a 10-digit mobile number';
+  setErr('phone', phoneErr); if (phoneErr) ok = false;
+
+  document.getElementById('bk-banner').textContent = ok ? '' : 'Fix the highlighted fields to continue.';
+  if (!ok) return;
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  showDone({
+    title: 'Eye test booked',
+    id: genId('BKG'),
+    lines: [
+      ['Where', mode === 'home' ? 'At home, ' + pin : 'Nearest store to ' + pin],
+      ['When', date + ', ' + v('slot')],
+      ['Name', name],
+      ['Mobile', phone],
+      ['Order', 'Held, ' + money(3500) + ' payable after the test']
+    ],
+    note: 'We will text you a reminder the day before. Lenses are made from the power measured at your test.'
+  });
+}
+
+/* ---------- Confirmation ---------- */
+function showDone({ title, id, lines, note }) {
+  render(`
+    <div class="eyebrow">Confirmed</div>
+    <h2>${title}</h2>
+    <div class="id" id="confirm-id">${id}</div>
+    <div class="summary">${lines.map(([k, v]) => `<div><span>${k}</span><span>${esc(v)}</span></div>`).join('')}</div>
+    <p class="hint">${note}</p>
+    <div class="actions"><span></span><button class="ghost" id="restart">Start again</button></div>`);
+  screen.classList.add('done');
+  document.getElementById('restart').onclick = showFork;
+}
+
+showFork();
+</script>
